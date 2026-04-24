@@ -31,8 +31,8 @@ const SCA = {
 };
 
 const FUEL = {
-  member: 10,
-  nonMemberPct: 0.10,
+  member: 10, // $/hr
+  nonMemberPct: 0.10, // 10%
 };
 
 function calcMinutes(distanceNm, speedKnots) {
@@ -73,7 +73,8 @@ function addMinutes(dateObj, minutes) {
 
 function formatClock(dateObj) {
   if (!dateObj) return '—';
-  return dateObj.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+});
 }
 
 function isNightMinute(dateObj) {
@@ -212,9 +213,9 @@ export default function BoatTowingPortal() {
 
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-6">
-            <Card className="rounded-3xl border border-slate-700 bg-slate-900/95 text-slate-100">
+            <Card className="rounded-3xl border-slate-700 bg-slate-900/95 text-slate-100">
               <CardHeader>
-                <CardTitle className="flex flex-wrap items-center gap-2 text-slate-100">
+                <CardTitle className="flex items-center gap-2 text-slate-100">
                   <CalendarClock className="h-5 w-5 text-cyan-400" /> Trip Info
 
                   <label className="ml-2 flex items-center gap-2 rounded-full border border-cyan-800/60 bg-cyan-950/30 px-3 py-1 text-sm font-medium text-cyan-200">
@@ -303,7 +304,7 @@ export default function BoatTowingPortal() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-3xl border border-slate-700 bg-slate-900/95 text-slate-100">
+            <Card className="rounded-3xl border-slate-700 bg-slate-900/95 text-slate-100">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-100">
                   <Moon className="h-5 w-5 text-cyan-400" /> Night Rate Hours
@@ -327,7 +328,7 @@ export default function BoatTowingPortal() {
           </div>
 
           <div className="space-y-6">
-            <Card className="rounded-3xl border border-slate-700 bg-slate-900/95 text-slate-100">
+            <Card className="rounded-3xl border-slate-700 bg-slate-900/95 text-slate-100">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-100">
                   <Gauge className="h-5 w-5 text-cyan-400" /> Estimate Results
@@ -359,7 +360,7 @@ export default function BoatTowingPortal() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-3xl border border-slate-700 bg-slate-900/95 text-slate-100">
+            <Card className="rounded-3xl border-slate-700 bg-slate-900/95 text-slate-100">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-100">
                   <Navigation className="h-5 w-5 text-cyan-400" /> Leg Breakdown
@@ -380,7 +381,7 @@ export default function BoatTowingPortal() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-3xl border border-slate-700 bg-slate-900/95 text-slate-100">
+            <Card className="rounded-3xl border-slate-700 bg-slate-900/95 text-slate-100">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-100">
                   <DollarSign className="h-5 w-5 text-cyan-400" /> Pricing
