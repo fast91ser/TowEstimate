@@ -74,7 +74,6 @@ function addMinutes(dateObj, minutes) {
 function formatClock(dateObj) {
   if (!dateObj) return '—';
   return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-});
 }
 
 function isNightMinute(dateObj) {
