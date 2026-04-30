@@ -22,7 +22,7 @@ const NIGHT_SCHEDULE = [
 
 const RATES = {
   member: { day: 276, night: 324 },
-  nonMember: { day: 408, night: 435 },
+  nonMember: { day: 410, night: 435 },
 };
 
 const SCA = {
@@ -34,6 +34,10 @@ const FUEL = {
   member: 10, // $/hr
   nonMemberPct: 0.10, // 10%
 };
+
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+
 
 function calcMinutes(distanceNm, speedKnots) {
   if (!distanceNm || !speedKnots) return 0;
@@ -67,6 +71,14 @@ function parseTimeToMinutes(time24) {
   return (h * 60) + m;
 }
 
+function getTimeHour(time24) {
+  return (time24 || '00:00').split(':')[0] || '00';
+}
+
+function getTimeMinute(time24) {
+  return (time24 || '00:00').split(':')[1] || '00';
+}
+
 function addMinutes(dateObj, minutes) {
   return new Date(dateObj.getTime() + minutes * 60000);
 }
@@ -74,6 +86,16 @@ function addMinutes(dateObj, minutes) {
 function formatClock(dateObj) {
   if (!dateObj) return '—';
   return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function formatClock12(dateObj) {
+  if (!dateObj) return '—';
+  return dateObj.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function formatClockBoth(dateObj) {
+  if (!dateObj) return '—';
+  return `${formatClock(dateObj)} / ${formatClock12(dateObj)}`;
 }
 
 function isNightMinute(dateObj) {
@@ -237,7 +259,27 @@ export default function BoatTowingPortal() {
                   </div>
                   <div>
                     <Label className="mb-2 block text-slate-200">Start Time</Label>
-                    <Input className="border-slate-600 bg-slate-800 text-slate-100" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <select
+                        className="h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+                        value={getTimeHour(startTime)}
+                        onChange={(e) => setStartTime(`${e.target.value}:${getTimeMinute(startTime)}`)}
+                      >
+                        {HOUR_OPTIONS.map((hour) => (
+                          <option key={hour} value={hour}>{hour}</option>
+                        ))}
+                      </select>
+
+                      <select
+                        className="h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+                        value={getTimeMinute(startTime)}
+                        onChange={(e) => setStartTime(`${getTimeHour(startTime)}:${e.target.value}`)}
+                      >
+                        {MINUTE_OPTIONS.map((minute) => (
+                          <option key={minute} value={minute}>{minute}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -353,7 +395,7 @@ export default function BoatTowingPortal() {
                   </div>
                   <div className="rounded-xl border border-slate-700 bg-slate-800 p-4 md:col-span-2">
                     <div className="text-xs text-slate-400">Tow Ends</div>
-                    <div className="text-2xl font-bold text-cyan-300">{formatClock(totals.tripEnd)}</div>
+                    <div className="text-2xl font-bold text-cyan-300">{formatClockBoth(totals.tripEnd)}</div>
                   </div>
                 </div>
               </CardContent>
@@ -374,7 +416,7 @@ export default function BoatTowingPortal() {
                     </div>
                     <div className="mt-2 text-sm text-slate-400">{leg.buffer ? 'Buffer / dock time' : `Speed: ${leg.speed} kt`}</div>
                     <div className="text-sm text-slate-400">Duration: {detailedMinsToReadable(leg.duration)}</div>
-                    <div className="text-sm text-slate-400">Start: {formatClock(leg.start)} • End: {formatClock(leg.end)}</div>
+                    <div className="text-sm text-slate-400">Start: {formatClockBoth(leg.start)} • End: {formatClockBoth(leg.end)}</div>
                   </div>
                 ))}
               </CardContent>
