@@ -131,46 +131,120 @@ function splitDayNightMinutes(startDate, totalMinutes) {
 export default function BoatTowingPortal() {
 
   const generatePDF = async (totals) => {
-    const doc = new jsPDF();
 
-    try {
-      const img = new Image();
-      img.src = '/header-logo.png';
+    const generatePDF = async (totals) => {
+  const doc = new jsPDF();
 
-      await new Promise((res, rej) => {
-        img.onload = res;
-        img.onerror = rej;
-      });
+  try {
+    const img = new Image();
+    img.src = '/header-logo.png';
 
-      doc.addImage(img, 'PNG', 10, 8, 180, 25);
-    } catch (e) {
-      doc.setFontSize(18);
-      doc.text('TowBoatUS Ft. Lauderdale', 10, 15);
-    }
+    await new Promise((res, rej) => {
+      img.onload = res;
+      img.onerror = rej;
+    });
 
-    let y = 40;
+    const maxWidth = 180;
+    const maxHeight = 35;
+    const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
+    const logoWidth = img.width * ratio;
+    const logoHeight = img.height * ratio;
+    const logoX = (210 - logoWidth) / 2;
 
-    doc.setFontSize(12);
-    doc.text(`Date: ${dispatchDate || 'N/A'}`, 10, y);
-    y += 6;
-    doc.text(`Start Time: ${startTime}`, 10, y);
-    y += 10;
+    doc.addImage(img, 'PNG', logoX, 8, logoWidth, logoHeight);
+  } catch (e) {
+    doc.setFontSize(18);
+    doc.text('TowBoatUS Ft. Lauderdale', 105, 18, { align: 'center' });
+  }
 
-    doc.text(`Underway: ${dist1} NM @ ${speed1} kt`, 10, y);
-    y += 6;
-    doc.text(`In Tow: ${dist2} NM @ ${speed2} kt`, 10, y);
-    y += 6;
-    doc.text(`RTB: ${dist3} NM @ ${speed3} kt`, 10, y);
-    y += 10;
+  let y = 50;
 
-    doc.text(`Total Time: ${detailedMinsToReadable(totals.totalMinutes)}`, 10, y);
-    y += 6;
+  doc.setFontSize(18);
+  doc.text('Towing Estimate', 105, y, { align: 'center' });
+  y += 10;
 
-    doc.text(`Member Total: ${money(totals.memberTotal)}`, 10, y);
-    y += 6;
-    doc.text(`Non-Member Total: ${money(totals.nonMemberTotal)}`, 10, y);
-    y += 6;
-    doc.text(`Savings: ${money(totals.savings)}`, 10, y);
+  doc.setDrawColor(220);
+  doc.line(10, y, 200, y);
+  y += 10;
+
+  doc.setFontSize(12);
+  doc.text(`Date: ${dispatchDate || 'N/A'}`, 10, y);
+  doc.text(`Start Time: ${startTime}`, 120, y);
+  y += 10;
+
+  doc.setFontSize(14);
+  doc.text('Route Details', 10, y);
+  y += 8;
+
+  doc.setFontSize(11);
+  doc.text(`Underway: ${dist1} NM @ ${speed1} kt`, 15, y);
+  y += 7;
+  doc.text(`In Tow: ${dist2} NM @ ${speed2} kt`, 15, y);
+  y += 7;
+  doc.text(`RTB: ${dist3} NM @ ${speed3} kt`, 15, y);
+  y += 7;
+  doc.text(`Tie-up / Drop-off Buffer: ${tieUpMinutes} min`, 15, y);
+  y += 12;
+
+  doc.setFontSize(14);
+  doc.text('Time Summary', 10, y);
+  y += 8;
+
+  doc.setFontSize(11);
+  doc.text(`Total Time: ${detailedMinsToReadable(totals.totalMinutes)}`, 15, y);
+  y += 7;
+  doc.text(`Daytime: ${detailedMinsToReadable(totals.dayMinutes)}`, 15, y);
+  y += 7;
+  doc.text(`Nighttime: ${detailedMinsToReadable(totals.nightMinutes)}`, 15, y);
+  y += 7;
+  doc.text(`Tow Ends: ${formatClockBoth(totals.tripEnd)}`, 15, y);
+  y += 12;
+
+  doc.setFontSize(14);
+  doc.text('Pricing', 10, y);
+  y += 8;
+
+  doc.setFontSize(11);
+  doc.text(`Member Base: ${money(totals.baseMemberTotal)}`, 15, y);
+  y += 7;
+  if (sca) {
+    doc.text(`SCA Add-On: ${money(totals.scaMemberAdd)}`, 15, y);
+    y += 7;
+  }
+  if (fuel) {
+    doc.text(`Fuel Add-On: ${money(totals.fuelMemberAdd)}`, 15, y);
+    y += 7;
+  }
+
+  doc.setFontSize(13);
+  doc.text(`Member Total: ${money(totals.memberTotal)}`, 15, y);
+  y += 12;
+
+  doc.setFontSize(11);
+  doc.text(`Non-Member Base: ${money(totals.baseNonMemberTotal)}`, 15, y);
+  y += 7;
+  if (sca) {
+    doc.text(`SCA Add-On: ${money(totals.scaNonMemberAdd)}`, 15, y);
+    y += 7;
+  }
+  if (fuel) {
+    doc.text(`Fuel Add-On: ${money(totals.fuelNonMemberAdd)}`, 15, y);
+    y += 7;
+  }
+
+  doc.setFontSize(13);
+  doc.text(`Non-Member Total: ${money(totals.nonMemberTotal)}`, 15, y);
+  y += 12;
+
+  doc.setDrawColor(220);
+  doc.line(10, y, 200, y);
+  y += 10;
+
+  doc.setFontSize(16);
+  doc.text(`Member Savings: ${money(totals.savings)}`, 105, y, { align: 'center' });
+
+  doc.save('towing-estimate.pdf');
+};
 
     doc.save('towing-estimate.pdf');
   };
@@ -391,7 +465,7 @@ export default function BoatTowingPortal() {
   onClick={() => generatePDF(totals)}
   className="w-full bg-cyan-500 text-slate-950 hover:bg-cyan-400"
 >
-  Download PDF
+  Save Estimate
 </Button>
               </CardContent>
             </Card>
