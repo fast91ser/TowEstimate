@@ -31,7 +31,7 @@ const SCA = {
 };
 
 const FUEL = {
-  member: 10, // $/hr
+  member: 15, // $/hr
   nonMemberPct: 0.10, // 10%
 };
 
@@ -131,7 +131,7 @@ export default function BoatTowingPortal() {
   const [dispatchDate, setDispatchDate] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [sca, setSca] = useState(false);
-  const [fuel, setFuel] = useState(false);
+  const [, set] = useState(false);
 
   const [dist1, setDist1] = useState(0);
   const [dist2, setDist2] = useState(0);
@@ -182,11 +182,11 @@ export default function BoatTowingPortal() {
     const memberSubtotal = baseMemberTotal + scaMemberAdd;
     const nonMemberSubtotal = baseNonMemberTotal + scaNonMemberAdd;
 
-    const fuelMemberAdd = fuel ? (totalMinutes / 60) * FUEL.member : 0;
-    const fuelNonMemberAdd = fuel ? nonMemberSubtotal * FUEL.nonMemberPct : 0;
+    const MemberAdd =  ? (totalMinutes / 60) * .member : 0;
+    const NonMemberAdd =  ? nonMemberSubtotal * .nonMemberPct : 0;
 
-    const memberTotal = memberSubtotal + fuelMemberAdd;
-    const nonMemberTotal = nonMemberSubtotal + fuelNonMemberAdd;
+    const memberTotal = memberSubtotal + MemberAdd;
+    const nonMemberTotal = nonMemberSubtotal + NonMemberAdd;
 
     return {
       driveMinutes,
@@ -203,13 +203,13 @@ export default function BoatTowingPortal() {
       baseNonMemberTotal,
       scaMemberAdd,
       scaNonMemberAdd,
-      fuelMemberAdd,
-      fuelNonMemberAdd,
+      MemberAdd,
+      NonMemberAdd,
       memberTotal,
       nonMemberTotal,
       savings: Math.max(nonMemberTotal - memberTotal, 0),
     };
-  }, [dispatchDate, startTime, dist1, dist2, dist3, speed1, speed2, speed3, tieUpMinutes, leg1Minutes, leg2Minutes, leg3Minutes, sca, fuel]);
+  }, [dispatchDate, startTime, dist1, dist2, dist3, speed1, speed2, speed3, tieUpMinutes, leg1Minutes, leg2Minutes, leg3Minutes, sca, ]);
 
   const selectedSchedule = dispatchDate
     ? NIGHT_SCHEDULE[new Date(`${dispatchDate}T00:00:00`).getMonth()]
@@ -337,7 +337,7 @@ export default function BoatTowingPortal() {
 
                 {fuel && (
                   <div className="rounded-2xl border border-amber-700/50 bg-amber-950/20 p-4 text-sm text-amber-200">
-                    Fuel surcharge active: adds <span className="font-semibold">$10/hr</span> for members and <span className="font-semibold">10%</span> of subtotal for non-members.
+                    Fuel surcharge active: adds <span className="font-semibold">$15/hr</span> for members and <span className="font-semibold">10%</span> of subtotal for non-members.
                   </div>
                 )}
 
