@@ -132,7 +132,6 @@ export default function BoatTowingPortal() {
 
   const generatePDF = async (totals) => {
 
-    const generatePDF = async (totals) => {
   const doc = new jsPDF();
 
   try {
@@ -246,8 +245,6 @@ export default function BoatTowingPortal() {
   doc.save('towing-estimate.pdf');
 };
 
-    doc.save('towing-estimate.pdf');
-  };
   const [dispatchDate, setDispatchDate] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [sca, setSca] = useState(false);
