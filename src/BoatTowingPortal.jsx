@@ -131,8 +131,32 @@ function splitDayNightMinutes(startDate, totalMinutes) {
 export default function BoatTowingPortal() {
 
   const generatePDF = async (totals) => {
-
   const doc = new jsPDF();
+
+  const pageWidth = 210;
+  const left = 12;
+  const right = 198;
+  const boxWidth = right - left;
+
+  const drawSectionBox = (title, y, height) => {
+    doc.setDrawColor(190);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(left, y, boxWidth, height, 3, 3, 'FD');
+    doc.setFontSize(13);
+    doc.setTextColor(15, 23, 42);
+    doc.text(title, left + 5, y + 8);
+    doc.setDrawColor(220);
+    doc.line(left + 5, y + 11, right - 5, y + 11);
+  };
+
+  const text = (label, value, x, y) => {
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text(label, x, y);
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(String(value), x, y + 5);
+  };
 
   try {
     const img = new Image();
@@ -148,7 +172,7 @@ export default function BoatTowingPortal() {
     const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
     const logoWidth = img.width * ratio;
     const logoHeight = img.height * ratio;
-    const logoX = (210 - logoWidth) / 2;
+    const logoX = (pageWidth - logoWidth) / 2;
 
     doc.addImage(img, 'PNG', logoX, 8, logoWidth, logoHeight);
   } catch (e) {
@@ -159,88 +183,93 @@ export default function BoatTowingPortal() {
   let y = 50;
 
   doc.setFontSize(18);
+  doc.setTextColor(15, 23, 42);
   doc.text('Towing Estimate', 105, y, { align: 'center' });
   y += 10;
 
   doc.setDrawColor(220);
-  doc.line(10, y, 200, y);
-  y += 10;
-
-  doc.setFontSize(12);
-  doc.text(`Date: ${dispatchDate || 'N/A'}`, 10, y);
-  doc.text(`Start Time: ${startTime}`, 120, y);
-  y += 10;
-
-  doc.setFontSize(14);
-  doc.text('Route Details', 10, y);
+  doc.line(left, y, right, y);
   y += 8;
 
-  doc.setFontSize(11);
-  doc.text(`Underway: ${dist1} NM @ ${speed1} kt`, 15, y);
-  y += 7;
-  doc.text(`In Tow: ${dist2} NM @ ${speed2} kt`, 15, y);
-  y += 7;
-  doc.text(`RTB: ${dist3} NM @ ${speed3} kt`, 15, y);
-  y += 7;
-  doc.text(`Tie-up / Drop-off Buffer: ${tieUpMinutes} min`, 15, y);
-  y += 12;
+  drawSectionBox('Trip Details', y, 28);
+  text('Date', dispatchDate || 'N/A', left + 7, y + 18);
+  text('Start Time', startTime, 75, y + 18);
+  text('Tow Ends', formatClockBoth(totals.tripEnd), 130, y + 18);
+  y += 36;
 
-  doc.setFontSize(14);
-  doc.text('Time Summary', 10, y);
-  y += 8;
+  drawSectionBox('Route Details', y, 44);
+  text('Underway', `${dist1} NM @ ${speed1} kt`, left + 7, y + 18);
+  text('In Tow', `${dist2} NM @ ${speed2} kt`, 75, y + 18);
+  text('RTB', `${dist3} NM @ ${speed3} kt`, 130, y + 18);
+  text('Tie-up / Drop-off Buffer', `${tieUpMinutes} min`, left + 7, y + 32);
+  text('Total Distance', `${totals.totalNm.toFixed(1)} NM`, 75, y + 32);
+  y += 52;
 
-  doc.setFontSize(11);
-  doc.text(`Total Time: ${detailedMinsToReadable(totals.totalMinutes)}`, 15, y);
-  y += 7;
-  doc.text(`Daytime: ${detailedMinsToReadable(totals.dayMinutes)}`, 15, y);
-  y += 7;
-  doc.text(`Nighttime: ${detailedMinsToReadable(totals.nightMinutes)}`, 15, y);
-  y += 7;
-  doc.text(`Tow Ends: ${formatClockBoth(totals.tripEnd)}`, 15, y);
-  y += 12;
+  drawSectionBox('Time Summary', y, 34);
+  text('Total Time', detailedMinsToReadable(totals.totalMinutes), left + 7, y + 18);
+  text('Daytime', detailedMinsToReadable(totals.dayMinutes), 75, y + 18);
+  text('Nighttime', detailedMinsToReadable(totals.nightMinutes), 130, y + 18);
+  y += 42;
 
-  doc.setFontSize(14);
-  doc.text('Pricing', 10, y);
-  y += 8;
+  drawSectionBox('Rates & Add-ons', y, 44);
 
-  doc.setFontSize(11);
-  doc.text(`Member Base: ${money(totals.baseMemberTotal)}`, 15, y);
-  y += 7;
-  if (sca) {
-    doc.text(`SCA Add-On: ${money(totals.scaMemberAdd)}`, 15, y);
-    y += 7;
-  }
+  const memberRateText = sca
+    ? `$${RATES.member.day}/hr day + $${SCA.member}/hr SCA | $${RATES.member.night}/hr night + $${SCA.member}/hr SCA`
+    : `$${RATES.member.day}/hr day | $${RATES.member.night}/hr night`;
+
+  const nonMemberRateText = sca
+    ? `$${RATES.nonMember.day}/hr day + $${SCA.nonMember}/hr SCA | $${RATES.nonMember.night}/hr night + $${SCA.nonMember}/hr SCA`
+    : `$${RATES.nonMember.day}/hr day | $${RATES.nonMember.night}/hr night`;
+
+  text('Member Rate', memberRateText, left + 7, y + 18);
+  text('Non-Member Rate', nonMemberRateText, left + 7, y + 32);
+
   if (fuel) {
-    doc.text(`Fuel Add-On: ${money(totals.fuelMemberAdd)}`, 15, y);
-    y += 7;
+    doc.setFontSize(10);
+    doc.setTextColor(180, 83, 9);
+    doc.text('Fuel surcharge applied: Member $15/hr. Non-member 10% of subtotal.', left + 7, y + 40);
   }
 
-  doc.setFontSize(13);
-  doc.text(`Member Total: ${money(totals.memberTotal)}`, 15, y);
-  y += 12;
+  y += 52;
+
+  doc.setDrawColor(190);
+  doc.setFillColor(240, 253, 250);
+  doc.roundedRect(left, y, 86, 44, 3, 3, 'FD');
+
+  doc.setFillColor(255, 241, 242);
+  doc.roundedRect(112, y, 86, 44, 3, 3, 'FD');
 
   doc.setFontSize(11);
-  doc.text(`Non-Member Base: ${money(totals.baseNonMemberTotal)}`, 15, y);
-  y += 7;
-  if (sca) {
-    doc.text(`SCA Add-On: ${money(totals.scaNonMemberAdd)}`, 15, y);
-    y += 7;
-  }
-  if (fuel) {
-    doc.text(`Fuel Add-On: ${money(totals.fuelNonMemberAdd)}`, 15, y);
-    y += 7;
-  }
+  doc.setTextColor(15, 23, 42);
+  doc.text('Member Total', left + 6, y + 9);
+  doc.text('Non-Member Total', 118, y + 9);
 
-  doc.setFontSize(13);
-  doc.text(`Non-Member Total: ${money(totals.nonMemberTotal)}`, 15, y);
-  y += 12;
+  doc.setFontSize(10);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Base: ${money(totals.baseMemberTotal)}`, left + 6, y + 17);
+  if (sca) doc.text(`SCA: +${money(totals.scaMemberAdd)}`, left + 6, y + 23);
+  if (fuel) doc.text(`Fuel: +${money(totals.fuelMemberAdd)}`, left + 6, y + 29);
 
-  doc.setDrawColor(220);
-  doc.line(10, y, 200, y);
-  y += 10;
+  doc.text(`Base: ${money(totals.baseNonMemberTotal)}`, 118, y + 17);
+  if (sca) doc.text(`SCA: +${money(totals.scaNonMemberAdd)}`, 118, y + 23);
+  if (fuel) doc.text(`Fuel: +${money(totals.fuelNonMemberAdd)}`, 118, y + 29);
 
   doc.setFontSize(16);
-  doc.text(`Member Savings: ${money(totals.savings)}`, 105, y, { align: 'center' });
+  doc.setTextColor(5, 150, 105);
+  doc.text(money(totals.memberTotal), left + 6, y + 39);
+
+  doc.setTextColor(225, 29, 72);
+  doc.text(money(totals.nonMemberTotal), 118, y + 39);
+
+  y += 54;
+
+  doc.setDrawColor(14, 116, 144);
+  doc.setFillColor(236, 254, 255);
+  doc.roundedRect(left, y, boxWidth, 18, 3, 3, 'FD');
+
+  doc.setFontSize(15);
+  doc.setTextColor(14, 116, 144);
+  doc.text(`Member Savings: ${money(totals.savings)}`, 105, y + 12, { align: 'center' });
 
   doc.save('towing-estimate.pdf');
 };
