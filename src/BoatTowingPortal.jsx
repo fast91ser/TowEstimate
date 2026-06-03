@@ -131,7 +131,7 @@ export default function BoatTowingPortal() {
   const [dispatchDate, setDispatchDate] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [sca, setSca] = useState(false);
-  const [, set] = useState(false);
+  const [fuel, setFuel] = useState(false);
 
   const [dist1, setDist1] = useState(0);
   const [dist2, setDist2] = useState(0);
@@ -182,11 +182,11 @@ export default function BoatTowingPortal() {
     const memberSubtotal = baseMemberTotal + scaMemberAdd;
     const nonMemberSubtotal = baseNonMemberTotal + scaNonMemberAdd;
 
-    const MemberAdd =  ? (totalMinutes / 60) * .member : 0;
-    const NonMemberAdd =  ? nonMemberSubtotal * .nonMemberPct : 0;
+    const fuelMemberAdd = fuel ? (totalMinutes / 60) * FUEL.member : 0;
+    const fuelNonMemberAdd = fuel ? nonMemberSubtotal * FUEL.nonMemberPct : 0;
 
-    const memberTotal = memberSubtotal + MemberAdd;
-    const nonMemberTotal = nonMemberSubtotal + NonMemberAdd;
+    const memberTotal = memberSubtotal + fuelMemberAdd;
+    const nonMemberTotal = nonMemberSubtotal + fuelNonMemberAdd;
 
     return {
       driveMinutes,
@@ -203,13 +203,13 @@ export default function BoatTowingPortal() {
       baseNonMemberTotal,
       scaMemberAdd,
       scaNonMemberAdd,
-      MemberAdd,
-      NonMemberAdd,
+      fuelMemberAdd,
+      fuelNonMemberAdd,
       memberTotal,
       nonMemberTotal,
       savings: Math.max(nonMemberTotal - memberTotal, 0),
     };
-  }, [dispatchDate, startTime, dist1, dist2, dist3, speed1, speed2, speed3, tieUpMinutes, leg1Minutes, leg2Minutes, leg3Minutes, sca, ]);
+  }, [dispatchDate, startTime, dist1, dist2, dist3, speed1, speed2, speed3, tieUpMinutes, leg1Minutes, leg2Minutes, leg3Minutes, sca, fuel]);
 
   const selectedSchedule = dispatchDate
     ? NIGHT_SCHEDULE[new Date(`${dispatchDate}T00:00:00`).getMonth()]
