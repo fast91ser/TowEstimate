@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import jsPDF from 'jspdf';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -128,6 +129,51 @@ function splitDayNightMinutes(startDate, totalMinutes) {
 }
 
 export default function BoatTowingPortal() {
+
+  const generatePDF = async (totals) => {
+    const doc = new jsPDF();
+
+    try {
+      const img = new Image();
+      img.src = '/header-logo.png';
+
+      await new Promise((res, rej) => {
+        img.onload = res;
+        img.onerror = rej;
+      });
+
+      doc.addImage(img, 'PNG', 10, 8, 180, 25);
+    } catch (e) {
+      doc.setFontSize(18);
+      doc.text('TowBoatUS Ft. Lauderdale', 10, 15);
+    }
+
+    let y = 40;
+
+    doc.setFontSize(12);
+    doc.text(`Date: ${dispatchDate || 'N/A'}`, 10, y);
+    y += 6;
+    doc.text(`Start Time: ${startTime}`, 10, y);
+    y += 10;
+
+    doc.text(`Underway: ${dist1} NM @ ${speed1} kt`, 10, y);
+    y += 6;
+    doc.text(`In Tow: ${dist2} NM @ ${speed2} kt`, 10, y);
+    y += 6;
+    doc.text(`RTB: ${dist3} NM @ ${speed3} kt`, 10, y);
+    y += 10;
+
+    doc.text(`Total Time: ${detailedMinsToReadable(totals.totalMinutes)}`, 10, y);
+    y += 6;
+
+    doc.text(`Member Total: ${money(totals.memberTotal)}`, 10, y);
+    y += 6;
+    doc.text(`Non-Member Total: ${money(totals.nonMemberTotal)}`, 10, y);
+    y += 6;
+    doc.text(`Savings: ${money(totals.savings)}`, 10, y);
+
+    doc.save('towing-estimate.pdf');
+  };
   const [dispatchDate, setDispatchDate] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [sca, setSca] = useState(false);
@@ -341,7 +387,12 @@ export default function BoatTowingPortal() {
                   </div>
                 )}
 
-                <Button className="w-full bg-cyan-500 text-slate-950 hover:bg-cyan-400">Save Estimate</Button>
+                <Button
+  onClick={() => generatePDF(totals)}
+  className="w-full bg-cyan-500 text-slate-950 hover:bg-cyan-400"
+>
+  Download PDF
+</Button>
               </CardContent>
             </Card>
 
