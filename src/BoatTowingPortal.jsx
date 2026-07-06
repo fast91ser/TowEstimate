@@ -32,13 +32,16 @@ const SCA = {
 };
 
 const FUEL = {
-  member: 15, // $/hr
-  nonMemberPct: 0.10, // 10%
+  member: 15,
+  nonMemberPct: 0.10,
+};
+
+const RIDER = {
+  hourly: 82,
 };
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
-
 
 function calcMinutes(distanceNm, speedKnots) {
   if (!distanceNm || !speedKnots) return 0;
@@ -104,12 +107,9 @@ function isNightMinute(dateObj) {
   const minuteOfDay = dateObj.getHours() * 60 + dateObj.getMinutes();
   const nightStart = parseTimeToMinutes(schedule.start);
   const nightEnd = parseTimeToMinutes(schedule.end);
-
-  if (nightStart <= nightEnd) {
-    return minuteOfDay >= nightStart && minuteOfDay < nightEnd;
-  }
-
-  return minuteOfDay >= nightStart || minuteOfDay < nightEnd;
+  return nightStart <= nightEnd
+    ? minuteOfDay >= nightStart && minuteOfDay < nightEnd
+    : minuteOfDay >= nightStart || minuteOfDay < nightEnd;
 }
 
 function splitDayNightMinutes(startDate, totalMinutes) {
@@ -118,166 +118,19 @@ function splitDayNightMinutes(startDate, totalMinutes) {
 
   for (let i = 0; i < totalMinutes; i += 1) {
     const minutePoint = addMinutes(startDate, i);
-    if (isNightMinute(minutePoint)) {
-      nightMinutes += 1;
-    } else {
-      dayMinutes += 1;
-    }
+    if (isNightMinute(minutePoint)) nightMinutes += 1;
+    else dayMinutes += 1;
   }
 
   return { dayMinutes, nightMinutes };
 }
 
 export default function BoatTowingPortal() {
-
-  const generatePDF = async (totals) => {
-  const doc = new jsPDF();
-
-  const pageWidth = 210;
-  const left = 12;
-  const right = 198;
-  const boxWidth = right - left;
-
-  const drawSectionBox = (title, y, height) => {
-    doc.setDrawColor(190);
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(left, y, boxWidth, height, 3, 3, 'FD');
-    doc.setFontSize(13);
-    doc.setTextColor(15, 23, 42);
-    doc.text(title, left + 5, y + 8);
-    doc.setDrawColor(220);
-    doc.line(left + 5, y + 11, right - 5, y + 11);
-  };
-
-  const text = (label, value, x, y) => {
-    doc.setFontSize(10);
-    doc.setTextColor(100, 116, 139);
-    doc.text(label, x, y);
-    doc.setFontSize(11);
-    doc.setTextColor(15, 23, 42);
-    doc.text(String(value), x, y + 5);
-  };
-
-  try {
-    const img = new Image();
-    img.src = '/header-logo.png';
-
-    await new Promise((res, rej) => {
-      img.onload = res;
-      img.onerror = rej;
-    });
-
-    const maxWidth = 180;
-    const maxHeight = 35;
-    const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
-    const logoWidth = img.width * ratio;
-    const logoHeight = img.height * ratio;
-    const logoX = (pageWidth - logoWidth) / 2;
-
-    doc.addImage(img, 'PNG', logoX, 8, logoWidth, logoHeight);
-  } catch (e) {
-    doc.setFontSize(18);
-    doc.text('TowBoatUS Ft. Lauderdale', 105, 18, { align: 'center' });
-  }
-
-  let y = 50;
-
-  doc.setFontSize(18);
-  doc.setTextColor(15, 23, 42);
-  doc.text('Towing Estimate', 105, y, { align: 'center' });
-  y += 10;
-
-  doc.setDrawColor(220);
-  doc.line(left, y, right, y);
-  y += 8;
-
-  drawSectionBox('Trip Details', y, 28);
-  text('Date', dispatchDate || 'N/A', left + 7, y + 18);
-  text('Start Time', startTime, 75, y + 18);
-  text('Tow Ends', formatClockBoth(totals.tripEnd), 130, y + 18);
-  y += 36;
-
-  drawSectionBox('Route Details', y, 44);
-  text('Underway', `${dist1} NM @ ${speed1} kt`, left + 7, y + 18);
-  text('In Tow', `${dist2} NM @ ${speed2} kt`, 75, y + 18);
-  text('RTB', `${dist3} NM @ ${speed3} kt`, 130, y + 18);
-  text('Tie-up / Drop-off Buffer', `${tieUpMinutes} min`, left + 7, y + 32);
-  text('Total Distance', `${totals.totalNm.toFixed(1)} NM`, 75, y + 32);
-  y += 52;
-
-  drawSectionBox('Time Summary', y, 34);
-  text('Total Time', detailedMinsToReadable(totals.totalMinutes), left + 7, y + 18);
-  text('Daytime', detailedMinsToReadable(totals.dayMinutes), 75, y + 18);
-  text('Nighttime', detailedMinsToReadable(totals.nightMinutes), 130, y + 18);
-  y += 42;
-
-  drawSectionBox('Rates & Add-ons', y, 44);
-
-  const memberRateText = sca
-    ? `$${RATES.member.day}/hr day + $${SCA.member}/hr SCA | $${RATES.member.night}/hr night + $${SCA.member}/hr SCA`
-    : `$${RATES.member.day}/hr day | $${RATES.member.night}/hr night`;
-
-  const nonMemberRateText = sca
-    ? `$${RATES.nonMember.day}/hr day + $${SCA.nonMember}/hr SCA | $${RATES.nonMember.night}/hr night + $${SCA.nonMember}/hr SCA`
-    : `$${RATES.nonMember.day}/hr day | $${RATES.nonMember.night}/hr night`;
-
-  text('Member Rate', memberRateText, left + 7, y + 18);
-  text('Non-Member Rate', nonMemberRateText, left + 7, y + 32);
-
-  if (fuel) {
-    doc.setFontSize(10);
-    doc.setTextColor(180, 83, 9);
-    doc.text('Fuel surcharge applied: Member $15/hr. Non-member 10% of subtotal.', left + 7, y + 40);
-  }
-
-  y += 52;
-
-  doc.setDrawColor(190);
-  doc.setFillColor(240, 253, 250);
-  doc.roundedRect(left, y, 86, 44, 3, 3, 'FD');
-
-  doc.setFillColor(255, 241, 242);
-  doc.roundedRect(112, y, 86, 44, 3, 3, 'FD');
-
-  doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
-  doc.text('Member Total', left + 6, y + 9);
-  doc.text('Non-Member Total', 118, y + 9);
-
-  doc.setFontSize(10);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Base: ${money(totals.baseMemberTotal)}`, left + 6, y + 17);
-  if (sca) doc.text(`SCA: +${money(totals.scaMemberAdd)}`, left + 6, y + 23);
-  if (fuel) doc.text(`Fuel: +${money(totals.fuelMemberAdd)}`, left + 6, y + 29);
-
-  doc.text(`Base: ${money(totals.baseNonMemberTotal)}`, 118, y + 17);
-  if (sca) doc.text(`SCA: +${money(totals.scaNonMemberAdd)}`, 118, y + 23);
-  if (fuel) doc.text(`Fuel: +${money(totals.fuelNonMemberAdd)}`, 118, y + 29);
-
-  doc.setFontSize(16);
-  doc.setTextColor(5, 150, 105);
-  doc.text(money(totals.memberTotal), left + 6, y + 39);
-
-  doc.setTextColor(225, 29, 72);
-  doc.text(money(totals.nonMemberTotal), 118, y + 39);
-
-  y += 54;
-
-  doc.setDrawColor(14, 116, 144);
-  doc.setFillColor(236, 254, 255);
-  doc.roundedRect(left, y, boxWidth, 18, 3, 3, 'FD');
-
-  doc.setFontSize(15);
-  doc.setTextColor(14, 116, 144);
-  doc.text(`Member Savings: ${money(totals.savings)}`, 105, y + 12, { align: 'center' });
-
-  doc.save('towing-estimate.pdf');
-};
-
   const [dispatchDate, setDispatchDate] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [sca, setSca] = useState(false);
   const [fuel, setFuel] = useState(false);
+  const [rider, setRider] = useState(false);
 
   const [dist1, setDist1] = useState(0);
   const [dist2, setDist2] = useState(0);
@@ -331,8 +184,10 @@ export default function BoatTowingPortal() {
     const fuelMemberAdd = fuel ? (totalMinutes / 60) * FUEL.member : 0;
     const fuelNonMemberAdd = fuel ? nonMemberSubtotal * FUEL.nonMemberPct : 0;
 
-    const memberTotal = memberSubtotal + fuelMemberAdd;
-    const nonMemberTotal = nonMemberSubtotal + fuelNonMemberAdd;
+    const riderAdd = rider ? (totalMinutes / 60) * RIDER.hourly : 0;
+
+    const memberTotal = memberSubtotal + fuelMemberAdd + riderAdd;
+    const nonMemberTotal = nonMemberSubtotal + fuelNonMemberAdd + riderAdd;
 
     return {
       driveMinutes,
@@ -351,11 +206,162 @@ export default function BoatTowingPortal() {
       scaNonMemberAdd,
       fuelMemberAdd,
       fuelNonMemberAdd,
+      riderAdd,
       memberTotal,
       nonMemberTotal,
       savings: Math.max(nonMemberTotal - memberTotal, 0),
     };
-  }, [dispatchDate, startTime, dist1, dist2, dist3, speed1, speed2, speed3, tieUpMinutes, leg1Minutes, leg2Minutes, leg3Minutes, sca, fuel]);
+  }, [dispatchDate, startTime, dist1, dist2, dist3, speed1, speed2, speed3, tieUpMinutes, leg1Minutes, leg2Minutes, leg3Minutes, sca, fuel, rider]);
+
+  const generatePDF = async (totals) => {
+    const doc = new jsPDF();
+    const pageWidth = 210;
+    const left = 12;
+    const right = 198;
+    const boxWidth = right - left;
+
+    const drawSectionBox = (title, y, height) => {
+      doc.setDrawColor(190);
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(left, y, boxWidth, height, 3, 3, 'FD');
+      doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42);
+      doc.text(title, left + 5, y + 8);
+      doc.setDrawColor(220);
+      doc.line(left + 5, y + 11, right - 5, y + 11);
+    };
+
+    const text = (label, value, x, y) => {
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text(label, x, y);
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.text(String(value), x, y + 5);
+    };
+
+    try {
+      const img = new Image();
+      img.src = '/header-logo.png';
+
+      await new Promise((res, rej) => {
+        img.onload = res;
+        img.onerror = rej;
+      });
+
+      const maxWidth = 180;
+      const maxHeight = 35;
+      const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
+      const logoWidth = img.width * ratio;
+      const logoHeight = img.height * ratio;
+      const logoX = (pageWidth - logoWidth) / 2;
+
+      doc.addImage(img, 'PNG', logoX, 8, logoWidth, logoHeight);
+    } catch (e) {
+      doc.setFontSize(18);
+      doc.text('TowBoatUS Ft. Lauderdale', 105, 18, { align: 'center' });
+    }
+
+    let y = 50;
+
+    doc.setFontSize(18);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Towing Estimate', 105, y, { align: 'center' });
+    y += 10;
+
+    doc.setDrawColor(220);
+    doc.line(left, y, right, y);
+    y += 8;
+
+    drawSectionBox('Trip Details', y, 28);
+    text('Date', dispatchDate || 'N/A', left + 7, y + 18);
+    text('Start Time', startTime, 75, y + 18);
+    text('Tow Ends', formatClockBoth(totals.tripEnd), 130, y + 18);
+    y += 36;
+
+    drawSectionBox('Route Details', y, 44);
+    text('Underway', `${dist1} NM @ ${speed1} kt`, left + 7, y + 18);
+    text('In Tow', `${dist2} NM @ ${speed2} kt`, 75, y + 18);
+    text('RTB', `${dist3} NM @ ${speed3} kt`, 130, y + 18);
+    text('Tie-up / Drop-off Buffer', `${tieUpMinutes} min`, left + 7, y + 32);
+    text('Total Distance', `${totals.totalNm.toFixed(1)} NM`, 75, y + 32);
+    y += 52;
+
+    drawSectionBox('Time Summary', y, 34);
+    text('Total Time', detailedMinsToReadable(totals.totalMinutes), left + 7, y + 18);
+    text('Daytime', detailedMinsToReadable(totals.dayMinutes), 75, y + 18);
+    text('Nighttime', detailedMinsToReadable(totals.nightMinutes), 130, y + 18);
+    y += 42;
+
+    drawSectionBox('Rates & Add-ons', y, 52);
+
+    const memberRateText = sca
+      ? `$${RATES.member.day}/hr day + $${SCA.member}/hr SCA | $${RATES.member.night}/hr night + $${SCA.member}/hr SCA`
+      : `$${RATES.member.day}/hr day | $${RATES.member.night}/hr night`;
+
+    const nonMemberRateText = sca
+      ? `$${RATES.nonMember.day}/hr day + $${SCA.nonMember}/hr SCA | $${RATES.nonMember.night}/hr night + $${SCA.nonMember}/hr SCA`
+      : `$${RATES.nonMember.day}/hr day | $${RATES.nonMember.night}/hr night`;
+
+    text('Member Rate', memberRateText, left + 7, y + 18);
+    text('Non-Member Rate', nonMemberRateText, left + 7, y + 32);
+
+    let addOnY = y + 44;
+    doc.setFontSize(10);
+    doc.setTextColor(180, 83, 9);
+    if (fuel) {
+      doc.text('Fuel surcharge: Member $15/hr. Non-member 10% of subtotal.', left + 7, addOnY);
+      addOnY += 5;
+    }
+    if (rider) {
+      doc.text('Rider needed: +$82/hr for both member and non-member.', left + 7, addOnY);
+    }
+
+    y += 60;
+
+    doc.setDrawColor(190);
+    doc.setFillColor(240, 253, 250);
+    doc.roundedRect(left, y, 86, 50, 3, 3, 'FD');
+
+    doc.setFillColor(255, 241, 242);
+    doc.roundedRect(112, y, 86, 50, 3, 3, 'FD');
+
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Member Total', left + 6, y + 9);
+    doc.text('Non-Member Total', 118, y + 9);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Base: ${money(totals.baseMemberTotal)}`, left + 6, y + 17);
+    if (sca) doc.text(`SCA: +${money(totals.scaMemberAdd)}`, left + 6, y + 23);
+    if (fuel) doc.text(`Fuel: +${money(totals.fuelMemberAdd)}`, left + 6, y + 29);
+    if (rider) doc.text(`Rider: +${money(totals.riderAdd)}`, left + 6, y + 35);
+
+    doc.text(`Base: ${money(totals.baseNonMemberTotal)}`, 118, y + 17);
+    if (sca) doc.text(`SCA: +${money(totals.scaNonMemberAdd)}`, 118, y + 23);
+    if (fuel) doc.text(`Fuel: +${money(totals.fuelNonMemberAdd)}`, 118, y + 29);
+    if (rider) doc.text(`Rider: +${money(totals.riderAdd)}`, 118, y + 35);
+
+    doc.setFontSize(16);
+    doc.setTextColor(5, 150, 105);
+    doc.text(money(totals.memberTotal), left + 6, y + 45);
+
+    doc.setTextColor(225, 29, 72);
+    doc.text(money(totals.nonMemberTotal), 118, y + 45);
+
+    y += 60;
+
+    doc.setDrawColor(14, 116, 144);
+    doc.setFillColor(236, 254, 255);
+    doc.roundedRect(left, y, boxWidth, 18, 3, 3, 'FD');
+
+    doc.setFontSize(15);
+    doc.setTextColor(14, 116, 144);
+    doc.text(`Member Savings: ${money(totals.savings)}`, 105, y + 12, { align: 'center' });
+
+    doc.save('towing-estimate.pdf');
+  };
 
   const selectedSchedule = dispatchDate
     ? NIGHT_SCHEDULE[new Date(`${dispatchDate}T00:00:00`).getMonth()]
@@ -382,8 +388,8 @@ export default function BoatTowingPortal() {
           <div className="space-y-6">
             <Card className="rounded-3xl border-slate-700 bg-slate-900/95 text-slate-100">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-100">
-                  <CalendarClock className="h-5 w-5 text-cyan-400" /> Trip Info
+                <CardTitle className="flex flex-wrap items-center gap-2 text-slate-100">
+                  <CalendarClock className="h-5 w-5 text-cyan-400" /> Billing Options
 
                   <label className="ml-2 flex items-center gap-2 rounded-full border border-cyan-800/60 bg-cyan-950/30 px-3 py-1 text-sm font-medium text-cyan-200">
                     <input type="checkbox" checked={sca} onChange={(e) => setSca(e.target.checked)} className="accent-cyan-400" />
@@ -393,6 +399,11 @@ export default function BoatTowingPortal() {
                   <label className="flex items-center gap-2 rounded-full border border-cyan-800/60 bg-cyan-950/30 px-3 py-1 text-sm font-medium text-cyan-200">
                     <input type="checkbox" checked={fuel} onChange={(e) => setFuel(e.target.checked)} className="accent-cyan-400" />
                     Fuel Surcharge
+                  </label>
+
+                  <label className="flex items-center gap-2 rounded-full border border-cyan-800/60 bg-cyan-950/30 px-3 py-1 text-sm font-medium text-cyan-200">
+                    <input type="checkbox" checked={rider} onChange={(e) => setRider(e.target.checked)} className="accent-cyan-400" />
+                    Rider Needed
                   </label>
                 </CardTitle>
               </CardHeader>
@@ -406,24 +417,12 @@ export default function BoatTowingPortal() {
                   <div>
                     <Label className="mb-2 block text-slate-200">Start Time</Label>
                     <div className="grid grid-cols-2 gap-3">
-                      <select
-                        className="h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
-                        value={getTimeHour(startTime)}
-                        onChange={(e) => setStartTime(`${e.target.value}:${getTimeMinute(startTime)}`)}
-                      >
-                        {HOUR_OPTIONS.map((hour) => (
-                          <option key={hour} value={hour}>{hour}</option>
-                        ))}
+                      <select className="h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500" value={getTimeHour(startTime)} onChange={(e) => setStartTime(`${e.target.value}:${getTimeMinute(startTime)}`)}>
+                        {HOUR_OPTIONS.map((hour) => <option key={hour} value={hour}>{hour}</option>)}
                       </select>
 
-                      <select
-                        className="h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
-                        value={getTimeMinute(startTime)}
-                        onChange={(e) => setStartTime(`${getTimeHour(startTime)}:${e.target.value}`)}
-                      >
-                        {MINUTE_OPTIONS.map((minute) => (
-                          <option key={minute} value={minute}>{minute}</option>
-                        ))}
+                      <select className="h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500" value={getTimeMinute(startTime)} onChange={(e) => setStartTime(`${getTimeHour(startTime)}:${e.target.value}`)}>
+                        {MINUTE_OPTIONS.map((minute) => <option key={minute} value={minute}>{minute}</option>)}
                       </select>
                     </div>
                   </div>
@@ -475,24 +474,18 @@ export default function BoatTowingPortal() {
                   )}
                 </div>
 
-                {sca && (
-                  <div className="rounded-2xl border border-amber-700/50 bg-amber-950/20 p-4 text-sm text-amber-200">
-                    SCA active: adds <span className="font-semibold">$50/hr</span> to member pricing and <span className="font-semibold">$84/hr</span> to non-member pricing.
+                {(sca || fuel || rider) && (
+                  <div className="rounded-2xl border border-amber-700/50 bg-amber-950/20 p-4 text-sm text-amber-200 space-y-2">
+                    <div className="font-semibold">Selected Billing Options</div>
+                    {sca && <div>SCA: <span className="font-semibold">$50/hr</span> member, <span className="font-semibold">$84/hr</span> non-member.</div>}
+                    {fuel && <div>Fuel surcharge: <span className="font-semibold">$15/hr</span> member, <span className="font-semibold">10%</span> non-member subtotal.</div>}
+                    {rider && <div>Rider needed: <span className="font-semibold">$82/hr</span> for both member and non-member.</div>}
                   </div>
                 )}
 
-                {fuel && (
-                  <div className="rounded-2xl border border-amber-700/50 bg-amber-950/20 p-4 text-sm text-amber-200">
-                    Fuel surcharge active: adds <span className="font-semibold">$15/hr</span> for members and <span className="font-semibold">10%</span> of subtotal for non-members.
-                  </div>
-                )}
-
-                <Button
-  onClick={() => generatePDF(totals)}
-  className="w-full bg-cyan-500 text-slate-950 hover:bg-cyan-400"
->
-  Save Estimate
-</Button>
+                <Button onClick={() => generatePDF(totals)} className="w-full bg-cyan-500 text-slate-950 hover:bg-cyan-400">
+                  Save Estimate
+                </Button>
               </CardContent>
             </Card>
 
@@ -612,6 +605,7 @@ export default function BoatTowingPortal() {
                     <div className="mt-2 text-2xl font-bold text-emerald-300">{money(totals.baseMemberTotal)}</div>
                     {sca && <div className="mt-2 text-sm text-amber-300">SCA Add-On: +{money(totals.scaMemberAdd)}</div>}
                     {fuel && <div className="mt-2 text-sm text-amber-300">Fuel Add-On: +{money(totals.fuelMemberAdd)}</div>}
+                    {rider && <div className="mt-2 text-sm text-amber-300">Rider: +{money(totals.riderAdd)}</div>}
                     <div className="mt-3 text-3xl font-bold text-emerald-300">{money(totals.memberTotal)}</div>
                   </div>
                   <div className="rounded-xl border border-slate-700 bg-slate-800 p-5">
@@ -619,6 +613,7 @@ export default function BoatTowingPortal() {
                     <div className="mt-2 text-2xl font-bold text-rose-300">{money(totals.baseNonMemberTotal)}</div>
                     {sca && <div className="mt-2 text-sm text-amber-300">SCA Add-On: +{money(totals.scaNonMemberAdd)}</div>}
                     {fuel && <div className="mt-2 text-sm text-amber-300">Fuel Add-On (10%): +{money(totals.fuelNonMemberAdd)}</div>}
+                    {rider && <div className="mt-2 text-sm text-amber-300">Rider: +{money(totals.riderAdd)}</div>}
                     <div className="mt-3 text-3xl font-bold text-rose-300">{money(totals.nonMemberTotal)}</div>
                   </div>
                 </div>
