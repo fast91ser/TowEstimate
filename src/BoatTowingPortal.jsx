@@ -32,7 +32,7 @@ const SCA = {
 };
 
 const FUEL = {
-  member: 15,
+  member: 10,
   nonMemberPct: 0.10,
 };
 
