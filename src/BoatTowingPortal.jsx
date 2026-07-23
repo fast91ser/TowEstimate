@@ -523,7 +523,7 @@ const generatePDF = async (totals) => {
                   <div className="rounded-2xl border border-amber-700/50 bg-amber-950/20 p-4 text-sm text-amber-200 space-y-2">
                     <div className="font-semibold">Selected Billing Options</div>
                     {sca && <div>SCA: <span className="font-semibold">$50/hr</span> member, <span className="font-semibold">$84/hr</span> non-member.</div>}
-                    {fuel && <div>Fuel surcharge: <span className="font-semibold">$15/hr</span> member, <span className="font-semibold">10%</span> non-member subtotal.</div>}
+                    {fuel && <div>Fuel surcharge: <span className="font-semibold">$10/hr</span> member, <span className="font-semibold">10%</span> non-member subtotal.</div>}
                     {rider && <div>Rider needed: <span className="font-semibold">$82/hr</span> for both member and non-member.</div>}
                   </div>
                 )}
